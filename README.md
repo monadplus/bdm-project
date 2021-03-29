@@ -27,3 +27,12 @@ Code:
 ## HDFS: docker
 
 Follow instructions from https://github.com/big-data-europe/docker-hadoop
+
+## Libs
+
+- Apache Parquet (HDFS support): https://github.com/mjakubowski84/parquet4s#quick-start
+- Spark Core: https://github.com/apache/spark/tree/master/examples/src/main/scala/org/apache/spark/examples/sql
+- Spark MLLib: https://github.com/apache/spark/tree/master/examples/src/main/scala/org/apache/spark/examples/mllib
+- Tableau: https://help.tableau.com/current/pro/desktop/en-us/examples_sparksql.htm
+- Kafka: https://github.com/cakesolutions/scala-kafka-client
+- Kibana can't query Spark directly.
