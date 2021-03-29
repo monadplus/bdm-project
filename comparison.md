@@ -37,6 +37,7 @@ Key-value store. Wide column store. HDFS as storage layer. Indexed by row, colum
 **Cons:**
 
 - Overhead (manager, indexes, data structures) of HBase when HDFS is enough since most of the time we will be loading the set in memory and doing the filters in memory.
+- No support for scans. You need to lookup by all keys.
 
 ## MongoDB
 
@@ -46,11 +47,14 @@ Document store, collections, BSON, metadatada stored for fast query through Mong
 
 - Spark has native support for it (https://github.com/raphaelbrugier/spark-mongo-example/blob/master/src/main/scala/com/github/rbrugier/MongoSparkMain.scala).
 - It's a (limited) data processing framework by itself.
+- Indexex.
 - Native support for json.
+- Can be used as ~RDBMS
 
 **Cons:**
 
-- MongoDB is a limited data processing framework by itself. So adding Spark over it is kind of redundant and mongoDB is not well known for its storage architecture. I do not see us using mongoDB's queries and then running spark over these results since we can do the same over Spark and much more.
+- MongoDB is a limited data processing framework by itself. So adding Spark over it is kind of redundant and mongoDB is not well known for its storage architecture. I do not see us using mongoDB's queries and then running spark over these results since we can do the same over Spark and much more. Antoni added that maybe it is not a bad idea to use Spark over mongoDB since we could take advantage of mongo's indexes.
+- mongoDB goes to RAM. Spark goes to RAM. Everything in RAM.
 
 | MongoDB                   | HBase               |
 |---------------------------|---------------------|
@@ -64,6 +68,10 @@ MongDB provides a much richer model similar to a RDBMS (data model, ACID transac
 
 ## Conclusion
 
-In my opinion HDFS + Spark is the way to go. In a real project, I would use S3/Google Cloud Storage instead of HDFS since building and mainting your own cluster of HDFS is an overkill unless you need a very scalable storage system.
+Our final decision is to go with MongoDB and Spark on top.
 
-The question is which file format we use: SequenceFile or Parquet.
+Mongo has a great distribution and replication based on constant hashes and real indexes. Spark provides additional computational capabilities and great support for mongo. It is easy to load the data into Spark taking advantage of Mongo's fast indexes.
+
+Furthermore, MongoDB can also be used as a RDBMS (with some caveats) and it has really good integration with other services such as Tableau.
+
+The problem of using Mongodb and Spark is that you have everything loaded in memory. You will not be able to process big datasets unless you work on top of the streaming API of Spark or spent a lot of money on RAM.
