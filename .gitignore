@@ -1,4 +1,13 @@
+# tmp files
 *~
-.idea
-hbase-example/
-hdfs-example/
+
+# Intellij
+.idea/
+
+# scala
+.bloop/
+.bsp/
+.metals/
+target/
+
+# java
