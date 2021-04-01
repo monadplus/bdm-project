@@ -10,7 +10,11 @@ lazy val root = (project in file("."))
     scalaVersion := "2.13.4",
     libraryDependencies ++= Seq(
       "org.scalameta" %% "munit" % MunitVersion % Test
-    ),
+    ) ++ Seq(
+      "io.circe" %% "circe-core",
+      "io.circe" %% "circe-generic",
+      "io.circe" %% "circe-parser"
+    ).map(_ % CirceVersion),
     addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1"),
     testFrameworks += new TestFramework("munit.Framework")
   )
