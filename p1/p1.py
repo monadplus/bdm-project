@@ -4,6 +4,7 @@ import json
 import os
 import re
 import csv
+import pymongo
 from mongoclient import getMongoClient
 
 # Datasets
@@ -81,6 +82,9 @@ def getOpenDataBcnDict():
                     else:
                         opendatabcn[key] = value
     # compute average
+    from statistics import mean
+    for value in opendatabcn.values():
+        value['avg'] = mean(value.values())
     return opendatabcn
 
 # Careful, some neighborhood names are repeated among districts.
@@ -101,18 +105,31 @@ def reconciliate(housing, opendatabcn):
         key = (districtId, neighborhoodId)
         value['rfd'] = opendatabcn[key]
 
-def loadHousingMongo(housing):
+def loadHousingMongo(housing, opendatabcn):
     houses = list(housing.values())
     client = getMongoClient()
     db = client['test']
+    # housing
     collection = db['housing']
     collection.drop()
     collection.insert_many(houses)
+    collection.create_index([('district', pymongo.ASCENDING), ('neighborhood', pymongo.ASCENDING)])
+    # rfd
+    collection = db['rfd']
+    collection.drop()
+    for (k, v) in opendatabcn.items():
+        (district, neighborhood) = k
+        data = {'district': district
+                , 'neighborhood': neighborhood
+                , 'rfd': v['avg']
+                }
+        collection.insert_one(data)
+    collection.create_index([('district', pymongo.ASCENDING), ('neighborhood', pymongo.ASCENDING)])
 
 if __name__ == "__main__":
     housing = getHousingDict()
     opendatabcn = getOpenDataBcnDict()
     reconciliate(housing, opendatabcn)
     # writeJSONToFile(housing, 'housing.json')
-    loadHousingMongo(housing)
+    loadHousingMongo(housing, opendatabcn)
     print('Finished successfully')
