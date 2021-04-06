@@ -36,3 +36,8 @@ Follow instructions from https://github.com/big-data-europe/docker-hadoop
 - Tableau: https://help.tableau.com/current/pro/desktop/en-us/examples_sparksql.htm
 - Kafka: https://github.com/cakesolutions/scala-kafka-client
 - Kibana can't query Spark directly.
+
+## TODO
+
+- Hbase for projections with large workloads is better.
+- Explain sharding.

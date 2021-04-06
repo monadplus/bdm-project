@@ -6,6 +6,7 @@ import re
 import csv
 import pymongo
 from mongoclient import getMongoClient
+import happybase
 
 # Datasets
 idealistaPath = "../datasets/idealista"
@@ -105,7 +106,7 @@ def reconciliate(housing, opendatabcn):
         key = (districtId, neighborhoodId)
         value['rfd'] = opendatabcn[key]
 
-def loadHousingMongo(housing, opendatabcn):
+def storeToMongoDB(housing, opendatabcn):
     houses = list(housing.values())
     client = getMongoClient()
     db = client['test']
@@ -126,10 +127,16 @@ def loadHousingMongo(housing, opendatabcn):
         collection.insert_one(data)
     collection.create_index([('district', pymongo.ASCENDING), ('neighborhood', pymongo.ASCENDING)])
 
+def storeToHBase(housing):
+    pass
+
 if __name__ == "__main__":
-    housing = getHousingDict()
-    opendatabcn = getOpenDataBcnDict()
-    reconciliate(housing, opendatabcn)
-    # writeJSONToFile(housing, 'housing.json')
-    loadHousingMongo(housing, opendatabcn)
-    print('Finished successfully')
+    # housing = getHousingDict()
+    # opendatabcn = getOpenDataBcnDict()
+    # reconciliate(housing, opendatabcn)
+    # # writeJSONToFile(housing, 'housing.json')
+    # storeToMongoDB(housing, opendatabcn)
+    # print('Finished successfully')
+
+    connection = happybase.Connection()
+    print(connection.tables())
