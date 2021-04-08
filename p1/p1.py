@@ -144,7 +144,9 @@ def storeToHBase(housing, opendatabcn):
 
     deleteAllTables(conn)
 
-    conn.create_table('housing', {'cf1': dict(max_versions=1), 'cf2': dict(max_versions=1)})
+    conn.create_table('housing', {'cf1': dict(max_versions=1)
+                                  , 'cf2': dict(max_versions=1)
+                                  , 'cf3': dict(max_versions=1)})
     table = conn.table('housing')
     with table.batch() as b:
         for k,v in housing.items():
@@ -152,23 +154,22 @@ def storeToHBase(housing, opendatabcn):
             #      smore fields where omitted
             d = { 'cf1:price': str(v['price'])
                   , 'cf1:rfd_avg': str(v['rfd']['avg'])
-                  , 'cf2:district': v['district']
-                  , 'cf2:neighborhood': v['neighborhood']
+                  , 'cf1:district': v['district']
+                  , 'cf1:neighborhood': v['neighborhood']
                   , 'cf2:date': v['date']
+                  , 'cf3:propertyType': v['propertyType']
+                  , 'cf3:status': v['status']
+                  , 'cf3:size': str(v['size'])
+                  , 'cf3:rooms': str(v['rooms'])
+                  , 'cf3:bathrooms': str(v['bathrooms'])
+                  , 'cf3:latitude': str(v['latitude'])
+                  , 'cf3:longitude': str(v['longitude'])
+                  , 'cf3:distance': str(v['distance'])
+                  , 'cf3:newDevelopment': str(v['newDevelopment'])
+                  , 'cf3:priceByArea': str(v['priceByArea'])
                   # Missing
-                  # , 'cf2:floor': v['floor']
-                  , 'cf2:propertyType': v['propertyType']
-                  , 'cf2:status': v['status']
-                  , 'cf2:size': str(v['size'])
-                  , 'cf2:rooms': str(v['rooms'])
-                  , 'cf2:bathrooms': str(v['bathrooms'])
-                  , 'cf2:latitude': str(v['latitude'])
-                  , 'cf2:longitude': str(v['longitude'])
-                  , 'cf2:distance': str(v['distance'])
-                  , 'cf2:newDevelopment': str(v['newDevelopment'])
-                  # Missing
-                  # , 'cf2:hasLift': str(v['hasLift'])
-                  , 'cf2:priceByArea': str(v['priceByArea'])
+                  # , 'cf3:floor': v['floor']
+                  # , 'cf3:hasLift': str(v['hasLift'])
                   }
             b.put(k, d)
     printRowCount(table)
