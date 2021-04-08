@@ -127,16 +127,66 @@ def storeToMongoDB(housing, opendatabcn):
         collection.insert_one(data)
     collection.create_index([('district', pymongo.ASCENDING), ('neighborhood', pymongo.ASCENDING)])
 
-def storeToHBase(housing):
-    pass
+def storeToHBase(housing, opendatabcn):
+    host = os.getenv('THRIFT_HOST') or 'hbase-docker' # localhost
+    port = int(os.getenv('THRIFT_PORT') or '9090') # 49167
+
+    def deleteAllTables(conn: happybase.Connection) -> None:
+        for table in conn.tables():
+            conn.disable_table(table)
+            conn.delete_table(table)
+            print("Deleted: " + table.decode('utf-8'))
+
+    def printRowCount(table: happybase.Table) -> None:
+        print("Number of rows in {}: {}".format(table.name.decode('utf-8'), len(list(table.scan()))))
+
+    conn = happybase.Connection(host, port)
+
+    deleteAllTables(conn)
+
+    conn.create_table('housing', {'cf1': dict(max_versions=1), 'cf2': dict(max_versions=1)})
+    table = conn.table('housing')
+    with table.batch() as b:
+        for k,v in housing.items():
+            # TODO store int/floats in a more efficient way
+            #      smore fields where omitted
+            d = { 'cf1:price': str(v['price'])
+                  , 'cf1:rfd_avg': str(v['rfd']['avg'])
+                  , 'cf2:district': v['district']
+                  , 'cf2:neighborhood': v['neighborhood']
+                  , 'cf2:date': v['date']
+                  # Missing
+                  # , 'cf2:floor': v['floor']
+                  , 'cf2:propertyType': v['propertyType']
+                  , 'cf2:status': v['status']
+                  , 'cf2:size': str(v['size'])
+                  , 'cf2:rooms': str(v['rooms'])
+                  , 'cf2:bathrooms': str(v['bathrooms'])
+                  , 'cf2:latitude': str(v['latitude'])
+                  , 'cf2:longitude': str(v['longitude'])
+                  , 'cf2:distance': str(v['distance'])
+                  , 'cf2:newDevelopment': str(v['newDevelopment'])
+                  # Missing
+                  # , 'cf2:hasLift': str(v['hasLift'])
+                  , 'cf2:priceByArea': str(v['priceByArea'])
+                  }
+            b.put(k, d)
+    printRowCount(table)
+
+    conn.create_table('rfd', {'cf1': dict(max_versions=1)})
+    table = conn.table('rfd')
+    with table.batch() as b:
+        for (district, neighborhood), v in opendatabcn.items():
+            d = { 'cf1:rfd_avg': str(v['avg']) }
+            # Split by (district, neighborhood) = key.split('-')
+            b.put(f'{district}-{neighborhood}', d)
+    printRowCount(table)
 
 if __name__ == "__main__":
-    # housing = getHousingDict()
-    # opendatabcn = getOpenDataBcnDict()
-    # reconciliate(housing, opendatabcn)
-    # # writeJSONToFile(housing, 'housing.json')
+    housing = getHousingDict()
+    opendatabcn = getOpenDataBcnDict()
+    reconciliate(housing, opendatabcn)
+    # writeJSONToFile(housing, 'housing.json')
     # storeToMongoDB(housing, opendatabcn)
-    # print('Finished successfully')
-
-    connection = happybase.Connection()
-    print(connection.tables())
+    storeToHBase(housing, opendatabcn)
+    print('Finished successfully')
