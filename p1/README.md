@@ -71,6 +71,8 @@ cd hbase-docker
 
 ### MongoDB
 
+> DEPRECATED !
+
 Our first choice was _MongoDB_ and so we prepared the same code that we did for _Hbase_.
 In order to store the datasets in mongo you need to:
 

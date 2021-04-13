@@ -1,12 +1,17 @@
 #!/usr/bin/env python
 
+import csv
 import json
 import os
 import re
-import csv
+from typing import Optional, Tuple
+
+# Hbase
+import happybase
+
+# MongoDB
 import pymongo
 from mongoclient import getMongoClient
-import happybase
 
 # Datasets
 idealistaPath = "../datasets/idealista"
@@ -39,7 +44,6 @@ def getDateFromFile(fileName):
 def getHousingDict():
     # To avoid duplicates
     housing = dict()
-    lookup = getLookupTable('idealista_extended.csv')
     for fileName in os.listdir(idealistaPath):
         filePath = f'{idealistaPath}/{fileName}'
         if os.path.isfile(filePath) and filePath.endswith(".json"):
@@ -54,9 +58,6 @@ def getHousingDict():
                         # Some housing are from other municipies but we do not have rfd value for them.
                         # We will discard them.
                         if obj[municipalityKey] == 'Barcelona':
-                            (districtId, neighborhoodId) = lookup[(obj[districtKey], obj[neighborhoodKey])]
-                            obj[districtIdKey] = districtId
-                            obj[neighborhoodIdKey] = neighborhoodId
                             obj['distance'] = float(obj['distance'])
                             if id in housing:
                                 old = housing[id]
@@ -69,23 +70,18 @@ def getHousingDict():
 
 def getOpenDataBcnDict():
     opendatabcn = dict()
-    lookup = getLookupTable('income_opendatabcn_extended.csv')
     for fileName in os.listdir(opendatabcnPath):
         filePath = f'{opendatabcnPath}/{fileName}'
         if os.path.isfile(filePath) and filePath.endswith(".csv"):
             with open(filePath, 'r') as csvfile:
                 reader = csv.DictReader(csvfile, delimiter=',')
                 for row in reader:
-                    key = lookup[(row[nomDistricteKey], row[nomBarriKey])]
+                    key = (row[nomDistricteKey], row[nomBarriKey])
                     value = dict([(row[anyKey], float(row[rfdKey]))])
                     if key in opendatabcn:
                         opendatabcn[key].update(value)
                     else:
                         opendatabcn[key] = value
-    # compute average
-    from statistics import mean
-    for value in opendatabcn.values():
-        value['avg'] = mean(value.values())
     return opendatabcn
 
 # Careful, some neighborhood names are repeated among districts.
@@ -99,35 +95,57 @@ def getLookupTable(filename):
 
     return lookupTable
 
-def reconciliate(housing, opendatabcn):
-    for value in housing.values():
-        districtId = value[districtIdKey]
-        neighborhoodId = value[neighborhoodIdKey]
-        key = (districtId, neighborhoodId)
-        value['rfd'] = opendatabcn[key]
+class LookupTables():
+    def __init__(self, idealistaToOpen, openToIdealista):
+        self.idealistaToOpen = idealistaToOpen
+        self.openToIdealista = openToIdealista
 
-def storeToMongoDB(housing, opendatabcn):
-    houses = list(housing.values())
-    client = getMongoClient()
-    db = client['test']
-    # housing
-    collection = db['housing']
-    collection.drop()
-    collection.insert_many(houses)
-    collection.create_index([('district', pymongo.ASCENDING), ('neighborhood', pymongo.ASCENDING)])
-    # rfd
-    collection = db['rfd']
-    collection.drop()
-    for (k, v) in opendatabcn.items():
-        (district, neighborhood) = k
-        data = {'district': district
-                , 'neighborhood': neighborhood
-                , 'rfd': v['avg']
-                }
-        collection.insert_one(data)
-    collection.create_index([('district', pymongo.ASCENDING), ('neighborhood', pymongo.ASCENDING)])
+def getLookupTables() -> LookupTables:
+    def getKey(d, value) -> Optional[Tuple[str, str]]:
+        for k, v in d.items():
+            if v == value:
+                return k
+        return None
 
-def storeToHBase(housing, opendatabcn):
+    def link(fromm, to):
+        d = dict()
+        for k,v in fromm.items():
+            v2 = getKey(to, v)
+            if v2 is None:
+                print('Missing: ', v)
+            else:
+                d[k] = v2
+        return d
+
+    lookupIdealista = getLookupTable('idealista_extended.csv')
+    lookupOpen      = getLookupTable('income_opendatabcn_extended.csv')
+    idealistaToOpen = link(lookupIdealista, lookupOpen)
+    openToIdealista = link(lookupOpen, lookupIdealista)
+    return LookupTables(idealistaToOpen, openToIdealista)
+
+# TODO update to the new model
+# def storeToMongoDB(housing, opendatabcn):
+#     houses = list(housing.values())
+#     client = getMongoClient()
+#     db = client['test']
+#     # housing
+#     collection = db['housing']
+#     collection.drop()
+#     collection.insert_many(houses)
+#     collection.create_index([('district', pymongo.ASCENDING), ('neighborhood', pymongo.ASCENDING)])
+#     # rfd
+#     collection = db['rfd']
+#     collection.drop()
+#     for (k, v) in opendatabcn.items():
+#         (district, neighborhood) = k
+#         data = {'district': district
+#                 , 'neighborhood': neighborhood
+#                 , 'rfd': v['avg']
+#                 }
+#         collection.insert_one(data)
+#     collection.create_index([('district', pymongo.ASCENDING), ('neighborhood', pymongo.ASCENDING)])
+
+def storeToHBase(housing, opendatabcn, lookupTables: LookupTables) -> None:
     host = os.getenv('THRIFT_HOST') or 'hbase-docker' # localhost
     port = int(os.getenv('THRIFT_PORT') or '9090') # 49167
 
@@ -144,19 +162,22 @@ def storeToHBase(housing, opendatabcn):
 
     deleteAllTables(conn)
 
-    conn.create_table('housing', {'cf1': dict(max_versions=1)
+    conn.create_table('housing', {  'cf1': dict(max_versions=1)
                                   , 'cf2': dict(max_versions=1)
                                   , 'cf3': dict(max_versions=1)})
     table = conn.table('housing')
     with table.batch() as b:
         for k,v in housing.items():
-            # TODO store int/floats in a more efficient way
-            #      smore fields where omitted
-            d = { 'cf1:price': str(v['price'])
-                  , 'cf1:rfd_avg': str(v['rfd']['avg'])
-                  , 'cf1:district': v['district']
+            d = {
+                  # Optimize query: correlation price/RFD
+                    'cf1:district': v['district']
                   , 'cf1:neighborhood': v['neighborhood']
+                  , 'cf1:price': str(v['price'])
+
+                  # Optimize query: Average number of new listings per day.
                   , 'cf2:date': v['date']
+
+                  # the rest
                   , 'cf3:propertyType': v['propertyType']
                   , 'cf3:status': v['status']
                   , 'cf3:size': str(v['size'])
@@ -167,27 +188,39 @@ def storeToHBase(housing, opendatabcn):
                   , 'cf3:distance': str(v['distance'])
                   , 'cf3:newDevelopment': str(v['newDevelopment'])
                   , 'cf3:priceByArea': str(v['priceByArea'])
-                  # Missing
+
+                  # Missing values
                   # , 'cf3:floor': v['floor']
                   # , 'cf3:hasLift': str(v['hasLift'])
                   }
             b.put(k, d)
     printRowCount(table)
 
-    conn.create_table('rfd', {'cf1': dict(max_versions=1)})
-    table = conn.table('rfd')
+    conn.create_table('opendatabcn', {'cf1': dict(max_versions=1)})
+    table = conn.table('opendatabcn')
     with table.batch() as b:
         for (district, neighborhood), v in opendatabcn.items():
-            d = { 'cf1:rfd_avg': str(v['avg']) }
-            # Split by (district, neighborhood) = key.split('-')
+            d = { 'cf1:year-rfd':  json.dumps(v)}
             b.put(f'{district}-{neighborhood}', d)
     printRowCount(table)
+
+    def createLookupTable(conn, name, d):
+        conn.create_table(name, {'cf1': dict(max_versions=1)})
+        table = conn.table(name)
+        with table.batch() as b:
+            for (originDistr, originHood), (destDistr, destHood) in d.items():
+                b.put(f'{originDistr}-{originHood}'
+                        , { 'cf1:district':  destDistr, 'cf1:neighborhood':  destHood})
+        printRowCount(table)
+
+    createLookupTable(conn, 'idealista-to-open', lookupTables.idealistaToOpen)
+    createLookupTable(conn, 'open-to-idealista', lookupTables.openToIdealista)
 
 if __name__ == "__main__":
     housing = getHousingDict()
     opendatabcn = getOpenDataBcnDict()
-    reconciliate(housing, opendatabcn)
+    lookupTables = getLookupTables()
+    storeToHBase(housing, opendatabcn, lookupTables)
     # writeJSONToFile(housing, 'housing.json')
     # storeToMongoDB(housing, opendatabcn)
-    storeToHBase(housing, opendatabcn)
     print('Finished successfully')
