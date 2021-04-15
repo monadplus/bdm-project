@@ -30,6 +30,7 @@ neighborhoodIdKey = 'neighborhood_id'
 nomDistricteKey = "Nom_Districte"
 nomBarriKey = "Nom_Barri"
 anyKey = "Any"
+poblacioKey = "Població"
 rfdKey = "Índex RFD Barcelona = 100"
 
 def writeJSONToFile(obj, filename):
@@ -76,12 +77,9 @@ def getOpenDataBcnDict():
             with open(filePath, 'r') as csvfile:
                 reader = csv.DictReader(csvfile, delimiter=',')
                 for row in reader:
-                    key = (row[nomDistricteKey], row[nomBarriKey])
-                    value = dict([(row[anyKey], float(row[rfdKey]))])
-                    if key in opendatabcn:
-                        opendatabcn[key].update(value)
-                    else:
-                        opendatabcn[key] = value
+                    key = (row[nomDistricteKey], row[nomBarriKey], row[anyKey])
+                    value = {'population': row[poblacioKey], 'rfd': float(row[rfdKey])}
+                    opendatabcn[key] = value
     return opendatabcn
 
 # Careful, some neighborhood names are repeated among districts.
@@ -164,7 +162,8 @@ def storeToHBase(housing, opendatabcn, lookupTables: LookupTables) -> None:
 
     conn.create_table('housing', {  'cf1': dict(max_versions=1)
                                   , 'cf2': dict(max_versions=1)
-                                  , 'cf3': dict(max_versions=1)})
+                                  , 'cf3': dict(max_versions=1)
+                                  , 'cf4': dict(max_versions=1)})
     table = conn.table('housing')
     with table.batch() as b:
         for k,v in housing.items():
@@ -177,21 +176,23 @@ def storeToHBase(housing, opendatabcn, lookupTables: LookupTables) -> None:
                   # Optimize query: Average number of new listings per day.
                   , 'cf2:date': v['date']
 
-                  # the rest
-                  , 'cf3:propertyType': v['propertyType']
-                  , 'cf3:status': v['status']
-                  , 'cf3:size': str(v['size'])
-                  , 'cf3:rooms': str(v['rooms'])
-                  , 'cf3:bathrooms': str(v['bathrooms'])
+                  # Geolocation
                   , 'cf3:latitude': str(v['latitude'])
                   , 'cf3:longitude': str(v['longitude'])
-                  , 'cf3:distance': str(v['distance'])
-                  , 'cf3:newDevelopment': str(v['newDevelopment'])
-                  , 'cf3:priceByArea': str(v['priceByArea'])
+
+                  # the rest
+                  , 'cf4:propertyType': v['propertyType']
+                  , 'cf4:status': v['status']
+                  , 'cf4:size': str(v['size'])
+                  , 'cf4:rooms': str(v['rooms'])
+                  , 'cf4:bathrooms': str(v['bathrooms'])
+                  , 'cf4:distance': str(v['distance'])
+                  , 'cf4:newDevelopment': str(v['newDevelopment'])
+                  , 'cf4:priceByArea': str(v['priceByArea'])
 
                   # Missing values
-                  # , 'cf3:floor': v['floor']
-                  # , 'cf3:hasLift': str(v['hasLift'])
+                  # , 'cf4:floor': v['floor']
+                  # , 'cf4:hasLift': str(v['hasLift'])
                   }
             b.put(k, d)
     printRowCount(table)
@@ -199,9 +200,11 @@ def storeToHBase(housing, opendatabcn, lookupTables: LookupTables) -> None:
     conn.create_table('opendatabcn', {'cf1': dict(max_versions=1)})
     table = conn.table('opendatabcn')
     with table.batch() as b:
-        for (district, neighborhood), v in opendatabcn.items():
-            d = { 'cf1:year-rfd':  json.dumps(v)}
-            b.put(f'{district}-{neighborhood}', d)
+        for (district, neighborhood, year), v in opendatabcn.items():
+            d = { 'cf1:rfd':  str(v['rfd'])
+                , 'cf1:population':  str(v['population'])
+                }
+            b.put(f'{district}-{neighborhood}-{year}', d)
     printRowCount(table)
 
     def createLookupTable(conn, name, d):

@@ -21,6 +21,9 @@ def kpi1(conn: happybase.Connection):
 def getKey(district, neighborhood):
     return f'{district}-{neighborhood}'
 
+def getKeyOpen(district, neighborhood, year):
+    return f'{district}-{neighborhood}-{year}'
+
 def kpi2(conn: happybase.Connection):
     """Correlation of rent price and family income per neighborhood."""
 
@@ -28,35 +31,40 @@ def kpi2(conn: happybase.Connection):
     table2 = conn.table('opendatabcn')
     table3 = conn.table('idealista-to-open')
 
-    # key = district-neighborhood
-    rfdByZone = dict() # value = RFD
-    pricesByZone = dict() # value = [price]
+    for year in range(2014, 2017, 1):
+        # key = district-neighborhood
+        rfdByZone = dict() # value = RFD
+        pricesByZone = dict() # value = [price]
 
-    for _k, v in table.scan():
-      # Union by hand
-      district = v[b'cf1:district'].decode('utf-8')
-      neighborhood = v[b'cf1:neighborhood'].decode('utf-8')
-      k = getKey(district, neighborhood)
-      row = table3.row(k, columns=['cf1:district', 'cf1:neighborhood'])
-      k = getKey(row[b'cf1:district'].decode('utf-8'), row[b'cf1:neighborhood'].decode('utf-8'))
-      row = table2.row(k, columns=['cf1:year-rfd'])
-      yearRfd = json.loads(row[b'cf1:year-rfd'].decode('utf-8'))
+        for _k, v in table.scan():
+            # Union by hand
+            district = v[b'cf1:district'].decode('utf-8')
+            neighborhood = v[b'cf1:neighborhood'].decode('utf-8')
+            k = getKey(district, neighborhood)
+            row = table3.row(k, columns=['cf1:district', 'cf1:neighborhood'])
+            k = getKeyOpen(row[b'cf1:district'].decode('utf-8')
+                            , row[b'cf1:neighborhood'].decode('utf-8')
+                            , year=year)
+            row = table2.row(k, columns=['cf1:rfd'])
+            rfd = float(row[b'cf1:rfd'].decode('utf-8'))
 
-      # Update data
-      k = getKey(district.replace('-', ' '), neighborhood.replace('-', ' '))
-      rfdByZone[k] = yearRfd['2017'] # arbitrary
-      price = float(v[b'cf1:price'].decode('utf-8'))
-      if k in pricesByZone:
-          pricesByZone[k].append(price)
-      else:
-          pricesByZone[k] = [price]
+            # Update data
+            k = getKey(district.replace('-', ' '), neighborhood.replace('-', ' '))
+            rfdByZone[k] = rfd
+            price = float(v[b'cf1:price'].decode('utf-8'))
+            if k in pricesByZone:
+                pricesByZone[k].append(price)
+            else:
+                pricesByZone[k] = [price]
 
-    for k, rfd in rfdByZone.items():
-        (district, neighborhood) = k.split('-')
-        price = mean(pricesByZone[k])
-        # Not the actual correlation formula but to simplify things
-        correlation = price/rfd
-        print(f'{neighborhood} has a correlation price/rfd = {correlation}')
+        print('')
+        print(f'Year {year}:')
+        for k, rfd in rfdByZone.items():
+            (district, neighborhood) = k.split('-')
+            price = mean(pricesByZone[k])
+            # Not the actual correlation formula but to simplify things
+            correlation = price/rfd
+            print(f'\t{neighborhood} has a correlation price/rfd = {correlation}')
 
 
 if __name__ == "__main__":
