@@ -8,15 +8,14 @@ This part is divided in three scripts:
 
 ## How-to
 
-First, you need to start both _mongodb_ and _hbase_. 
-We prepared a [Docker Compose](https://docs.docker.com/compose/install/) image for mongodb 
-and a docker script for hbase.
+We prepared a [Docker Compose](https://docs.docker.com/compose/install/) for hbase and mongodb.
 
 First run hbase docker image:
 
 ``` sh
 cd hbase-docker
 chmod +x start-hbase.sh
+# You may need to run this as sudo
 ./start-hbase.sh
 ```
 
@@ -66,6 +65,7 @@ Don't forget to stop the containers
 
 ``` sh
 cd hbase-docker
+# You may need to run this as sudo
 ./stop-hbase.sh
 ```
 
