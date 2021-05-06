@@ -15,10 +15,11 @@ if __name__ == "__main__":
 
     sc = spark.sparkContext
 
+    dfs = [];
     for dirPath in os.listdir(idealistaDir):
-       if os.path.isdir(idealistaDir+dirPath):
-         for path in os.listdir(idealistaDir+dirPath):
-           (fileName, ext) = os.path.splitext(path)
-           if ext == '.parquet':
-                df = spark.read.parquet(idealistaDir+dirPath+"/"+path)
-                df.select(df.address).show()
+        if os.path.isdir(idealistaDir+dirPath):
+            df = spark.read.parquet(idealistaDir+dirPath)
+            dfs.append(df)
+
+    rdd = sc.union(list(map(lambda df: df.rdd, dfs)))
+    print(rdd.count())
