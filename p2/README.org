@@ -1,4 +1,30 @@
-* Open data
+* Spark Application
+
+In order to run main.py you need to install pyspark: =pip install pyspark=.
+
+The mongo-spark-connector is from [[https://mvnrepository.com/artifact/org.mongodb.spark/mongo-spark-connector][Maven]].
+
+Connecting to mongoDB from Spark is quite challenging:
+
+#+BEGIN_SRC python
+from pyspark.sql import SparkSession
+
+spark = SparkSession \
+    .builder \
+    .master("local[4]") \
+    .appName("BDM") \
+    .config('spark.jars.packages', 'org.mongodb.spark:mongo-spark-connector_2.12:3.0.1') \
+    .config("spark.mongodb.input.uri", "mongodb://test:1234@127.0.0.1/test.income?authSource=admin") \
+    .getOrCreate()
+
+df = spark.read.format("com.mongodb.spark.sql.DefaultSource").load()
+df.printSchema()
+df.show()
+#+END_SRC
+
+Alternatively [[https://github.com/mongodb/mongo-spark/blob/master/examples/src/test/python/introduction.py][mongo-spark/introduction.py at master · mongodb/mongo-spark · GitHub]]
+
+** Open data
 
 | income_opendata_neighborhood | income_lookup_district | reconciled          |
 |------------------------------+------------------------+---------------------|
@@ -8,7 +34,7 @@
 |------------------------------+----------------------------+-------------------------|
 | neigh_name                   | neighborhood               | neighborhood_reconciled |
 
-* Open data
+** Open data
 
 | idealista | rent_lookup_district | reconciled |
 |-----------+----------------------+------------|

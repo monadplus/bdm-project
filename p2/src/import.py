@@ -24,5 +24,4 @@ if __name__ == "__main__":
                 objs = list(map(json.loads, fp.readlines()))
                 client.store(objs, fileName)
 
-    # What I have done
     client.statistics()
