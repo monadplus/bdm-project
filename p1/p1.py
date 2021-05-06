@@ -14,9 +14,9 @@ import pymongo
 from mongoclient import getMongoClient
 
 # Datasets
-idealistaPath = "../datasets/idealista"
-opendatabcnPath = "../datasets/opendatabcn-income"
-lookuptablesPath = "../datasets/lookup_tables"
+idealistaPath = "datasets/idealista"
+opendatabcnPath = "datasets/opendatabcn-income"
+lookuptablesPath = "datasets/lookup_tables"
 
 # Idealista Keys
 propertyCodeKey = 'propertyCode'

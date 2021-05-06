@@ -1,0 +1,19 @@
+* Open data
+
+| income_opendata_neighborhood | income_lookup_district | reconciled          |
+|------------------------------+------------------------+---------------------|
+| district_name                | district               | district_reconciled |
+
+| income_opendata_neighborhood | income_lookup_neighborhood | reconciled field        |
+|------------------------------+----------------------------+-------------------------|
+| neigh_name                   | neighborhood               | neighborhood_reconciled |
+
+* Open data
+
+| idealista | rent_lookup_district | reconciled |
+|-----------+----------------------+------------|
+| ???       | di                   | di_re      |
+
+| idealista | rent_lookup_neighborhood | reconciled |
+|-----------+--------------------------+------------|
+| ???       | ne                       | ni_re      |
