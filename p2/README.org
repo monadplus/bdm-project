@@ -1,4 +1,11 @@
+* Questions
+
+- Do we need to do all the processing in spark?
+  - Example: do the average on spark or do the average on the visualization tool (spark only stores date-#listings)
+- Correlation of rent/family income per neighborhood?
+
 * Spark Application
+
 
 In order to run main.py you need to install pyspark: =pip install pyspark=.
 

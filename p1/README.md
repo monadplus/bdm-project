@@ -2,9 +2,8 @@
 
 This part is divided in three scripts:
 
-- `p1.py`: the main script, ingest and transforms the data from `datasets` and then stores it in _hbase_. 
+- `main.py`: the main script, ingest and transforms the data from `datasets` and then stores it in _hbase_. 
 - `test-hbase.py`: for testing hbase.
-- `test-mongo.py`: for testing mongodb.
 
 ## How-to
 
@@ -47,11 +46,11 @@ start-hbase.sh: $ id=80020f6bfab452c2b033f38cbcea9c748348254e42164a840cc69a7850c
 start-hbase.sh: $ docker inspect $id
 ```
 
-Now, you can run the _ETL_ script `p1.py`:
+Now, you can run the _ETL_ script `main.py`:
 
 ``` sh
 # Replace <host> and <port> by the values given from `start-hbase.sh`
-THRIFT_HOST=<host> THRIFT_PORT=<port> ./p1.py
+THRIFT_HOST=<host> THRIFT_PORT=<port> ./main.py
 ```
 
 Finally, you can test hbase data running some queries:
@@ -81,10 +80,10 @@ In order to store the datasets in mongo you need to:
 cd mongodb
 docker-compose up -d
 
-# In p1.py you need to uncoment the line
+# In main.py you need to uncoment the line
 storeToMongoDB(housing, opendatabcn)
 
 # Now you can run the script
-./p1.py
+./main.py
 ./test-mongo.py
 ```
