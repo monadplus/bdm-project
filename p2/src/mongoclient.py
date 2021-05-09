@@ -2,15 +2,18 @@ from pymongo import MongoClient
 from urllib.parse import quote_plus
 
 class CustomMongoClient():
-    def __init__(self, user='test', password='1234',host='localhost'):
+
+    client: MongoClient
+
+    def __init__(self, user: str = 'test', password:str='1234',host:str='localhost'):
         uri = "mongodb://%s:%s@%s" % (quote_plus(user), quote_plus(password), host)
         self.client = MongoClient(uri)
 
-    def dropDB(self, db='test'):
+    def dropDB(self, db:str='test') -> None:
         client = self.client
         client.drop_database(db)
 
-    def store(self, objs, collectionName, dbName = 'test'):
+    def store(self, objs, collectionName: str, dbName: str = 'test') -> None:
         """objs: [jsonObject].
         """
         client = self.client
@@ -18,7 +21,7 @@ class CustomMongoClient():
         collection = db[collectionName]
         collection.insert_many(objs)
 
-    def statistics(self, dbName='test'):
+    def statistics(self, dbName:str = 'test') -> None:
         client = self.client
         db = client[dbName]
         print('Collections names: {}'.format(db.collection_names()))

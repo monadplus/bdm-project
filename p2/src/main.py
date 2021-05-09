@@ -6,29 +6,48 @@ import os
 import re
 from operator import add
 
-from pyspark.sql import SparkSession
+from pyspark.sql import SparkSession, SparkContext
+from pyspark import RDD
 from pyspark.sql.functions import col, lit
 from pyspark.sql.types import DoubleType
 
 
 class SparkClient():
+
     """
-    All datasets are cached in memory after loaded.
+    All datasets are cached in memory after loaded in order to reuse them through the queries.
     """
 
-    __isLoaded = False
+    sparkSession: SparkSession
 
-    def __init__(self, num_processors=4):
+    sc: SparkContext
+
+    # Idealista
+    idealistaRDD: RDD
+
+    # OpenDataBcn
+    incomeRDD: RDD
+
+    # Lookup Table
+    incomeDistrictRDD: RDD
+    incomeNeighborRDD: RDD
+    rentDistrictRDD : RDD
+    rentNeighbordRDD : RDD
+
+    # Load RDDs once.
+    __isLoaded: bool = False
+
+    def __init__(self, num_processors: int = 4):
         self.sparkSession = SparkSession \
             .builder \
             .master(f"local[{num_processors}]") \
             .appName("myApp") \
-            .config('spark.jars.packages', 'org.mongodb.spark:mongo-spark-connector_2.12:3.0.1') \
+            .config('spark.jars.packages', 'jars/org.mongodb.spark:mongo-spark-connector_2.12:3.0.1') \
             .getOrCreate()
 
         self.sc = self.sparkSession.sparkContext
 
-    def load(self):
+    def load(self) -> None:
         """This is computationally costly since loads all datasets in the cluster's memory."""
         if not self.__isLoaded:
             print('Make sure to have mongoDB running in localhost(test:1234)')
@@ -38,16 +57,16 @@ class SparkClient():
             self.loadLookup()
             self.__isLoaded = True
 
-    def loadLookup(self):
+    def loadLookup(self) -> None:
         self.incomeDistrictRDD = self.__loadMongoRDD('income_lookup_district')
         self.incomeNeighborRDD = self.__loadMongoRDD('income_lookup_neighborhood')
         self.rentDistrictRDD = self.__loadMongoRDD('rent_lookup_district')
         self.rentNeighbordRDD = self.__loadMongoRDD('rent_lookup_neighborhood')
 
-    def loadIncome(self):
+    def loadIncome(self) -> None:
         self.incomeRDD = self.__loadMongoRDD('income')
 
-    def loadIdealista(self):
+    def loadIdealista(self) -> None:
         def maxByDate(a, b) -> bool:
             if a.date > b.date: return a
             else: return b
@@ -76,7 +95,7 @@ class SparkClient():
                 .cache()
 
 
-    def __loadMongoRDD(self, collection):
+    def __loadMongoRDD(self, collection: str) -> SparkSession:
         return self.sparkSession\
                    .read.format("com.mongodb.spark.sql.DefaultSource") \
                    .option('uri', f"mongodb://test:1234@127.0.0.1/test.{collection}?authSource=admin") \
@@ -84,14 +103,14 @@ class SparkClient():
                    .rdd \
                    .cache()
 
-    def __parseDateFromName(self,name):
+    def __parseDateFromName(self, name: str) -> datetime:
         """Example: 2020_01_02_idealista"""
         str = re.compile("([\d]{4}_[\d]{2}_[\d]{2})").match(name).group(1).replace('_', '-')
         return datetime.datetime.strptime(str, '%Y-%m-%d')
 
 # Number of listings per day
 # You must average on the visualization tool
-def kpi1(client: SparkClient):
+def kpi1(client: SparkClient) -> None:
     # Do not coalesce + write in a real cluster
     # since it will send all your data to the driver
     # and store it in its local filesystem.
@@ -106,13 +125,13 @@ def kpi1(client: SparkClient):
 
 # Correlation of rent price and family income per neighborhood
 # Output: district,neighbor,family,mean(price),mean(rfd)
-def kpi2(client: SparkClient):
+def kpi2(client: SparkClient) -> None:
     return None
 
 # TODO
 #  * Load new dataset
 #  * New query using the new dataset
-def kpi3():
+def kpi3() -> None:
     return None
 
 if __name__ == "__main__":
