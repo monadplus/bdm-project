@@ -1,3 +1,17 @@
+* Questions
+
+Data: 
+
+- Do we need to do all the processing in spark?
+  - Example: do the average on spark or do the average on the visualization tool (spark only stores date-#listings)
+- Correlation of rent/family income per neighborhood?
+
+
+Visualization: 
+- Can we utilize jupyter notebook for the visualization?
+- Should we only visualize based on the queeries and KPIs?
+
+
 * Spark Application
 
 
