@@ -4,11 +4,10 @@ import json
 import os
 
 from mongoclient import CustomMongoClient
-from os import _PathType
 
-datasetsPath: _PathType = '../datasets/'
-incomePath: _PathType = datasetsPath+'income_opendata/income_opendata_neighborhood.json'
-lookupTablesDir: _PathType = datasetsPath+'lookup_tables/'
+datasetsPath = '../datasets/'
+incomePath = datasetsPath+'income_opendata/income_opendata_neighborhood.json'
+lookupTablesDir = datasetsPath+'lookup_tables/'
 
 if __name__ == "__main__":
     client = CustomMongoClient()

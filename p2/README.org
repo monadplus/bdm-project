@@ -1,17 +1,11 @@
-* Questions
-
-- Do we need to do all the processing in spark?
-  - Example: do the average on spark or do the average on the visualization tool (spark only stores date-#listings)
-- Correlation of rent/family income per neighborhood?
-
 * Spark Application
 
 
-In order to run main.py you need to install pyspark: =pip install pyspark=.
+In order to run =main.py= you need to install pyspark: =pip install pyspark=.
 
 The mongo-spark-connector is from [[https://mvnrepository.com/artifact/org.mongodb.spark/mongo-spark-connector][Maven]].
 
-Connecting to mongoDB from Spark is quite challenging:
+Connecting to mongoDB from Spark:
 
 #+BEGIN_SRC python
 from pyspark.sql import SparkSession
@@ -31,6 +25,16 @@ df.show()
 
 Alternatively [[https://github.com/mongodb/mongo-spark/blob/master/examples/src/test/python/introduction.py][mongo-spark/introduction.py at master · mongodb/mongo-spark · GitHub]]
 
+** Information about the datasets:
+
+- Idealista is in Parquet format, you can read the parquet files directly from Spark.
+- Income is stored in MongoDB's collection 'income'.
+- The lookup tables are divided in four collections:
+  - rent_lookup_district
+  - income_lookup_district
+  - rent_lookup_neighborhood
+  - income_lookup_neighborhood
+
 ** Lookup Tables (mongoDB)
 
 *** Open data
@@ -47,14 +51,15 @@ Alternatively [[https://github.com/mongodb/mongo-spark/blob/master/examples/src/
 
 | idealista | rent_lookup_district | reconciled |
 |-----------+----------------------+------------|
-| ???       | di                   | di_re      |
+| district  | di                   | di_re      |
 
-| idealista | rent_lookup_neighborhood | reconciled |
-|-----------+--------------------------+------------|
-| ???       | ne                       | ni_re      |
+| idealista    | rent_lookup_neighborhood | reconciled |
+|--------------+--------------------------+------------|
+| neighborhood | ne                       | ne_re      |
 
-** Idealista
+** Idealista schema
 
+Not all instances have the same attributes but most follow this schema.
 
 #+BEGIN_SRC
  |-- address: string (nullable = true)
