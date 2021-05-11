@@ -1,71 +1,46 @@
-* Questions
-
-Data: 
-
-- Do we need to do all the processing in spark?
-  - Example: do the average on spark or do the average on the visualization tool (spark only stores date-#listings)
-- Correlation of rent/family income per neighborhood?
-
-
-
 * Spark Application
-
-
-In order to run =main.py= you need to install pyspark: =pip install pyspark=.
 
 The mongo-spark-connector is from [[https://mvnrepository.com/artifact/org.mongodb.spark/mongo-spark-connector][Maven]].
 
-Connecting to mongoDB from Spark:
+** Execute the code
 
-#+BEGIN_SRC python
-from pyspark.sql import SparkSession
+You need a mongoDB server running, if you don't have one installed, use the one provided:
 
-spark = SparkSession \
-    .builder \
-    .master("local[4]") \
-    .appName("BDM") \
-    .config('spark.jars.packages', 'org.mongodb.spark:mongo-spark-connector_2.12:3.0.1') \
-    .config("spark.mongodb.input.uri", "mongodb://test:1234@127.0.0.1/test.income?authSource=admin") \
-    .getOrCreate()
-
-df = spark.read.format("com.mongodb.spark.sql.DefaultSource").load()
-df.printSchema()
-df.show()
+#+BEGIN_SRC sh
+# First install docker and docker-compose
+$ cd mongodb/
+$ docker-compose up --detach
 #+END_SRC
 
-Alternatively [[https://github.com/mongodb/mongo-spark/blob/master/examples/src/test/python/introduction.py][mongo-spark/introduction.py at master · mongodb/mongo-spark · GitHub]]
+*** Import
+
+Before running spark, you need to load the datasets in mongoDB (parquet files are read from disk).
+If you are running your own mongoDB server, you will probably need to edit =mongoclient.py= credentials and url.
+
+#+BEGIN_SRC sh
+cd p2/src/
+# pip install pymongo
+python3 import.py
+#+END_SRC
+
+*** Spark
+
+#+BEGIN_SRC sh
+cd p2/src/
+# pip install pyspark
+python3 main.py
+#+END_SRC
 
 ** Information about the datasets:
 
 - Idealista is in Parquet format, you can read the parquet files directly from Spark.
 - Income is stored in MongoDB's collection 'income'.
+- Inhabitants is stored in MongoDB's collection 'inhabitats'.
 - The lookup tables are divided in four collections:
   - rent_lookup_district
   - income_lookup_district
   - rent_lookup_neighborhood
   - income_lookup_neighborhood
-
-** Lookup Tables (mongoDB)
-
-*** Open data
-
-| income_opendata_neighborhood | income_lookup_district | reconciled          |
-|------------------------------+------------------------+---------------------|
-| district_name                | district               | district_reconciled |
-
-| income_opendata_neighborhood | income_lookup_neighborhood | reconciled field        |
-|------------------------------+----------------------------+-------------------------|
-| neigh_name                   | neighborhood               | neighborhood_reconciled |
-
-*** Open data
-
-| idealista | rent_lookup_district | reconciled |
-|-----------+----------------------+------------|
-| district  | di                   | di_re      |
-
-| idealista    | rent_lookup_neighborhood | reconciled |
-|--------------+--------------------------+------------|
-| neighborhood | ne                       | ne_re      |
 
 ** Idealista schema
 
