@@ -30,10 +30,10 @@ class SparkClient():
     incomeRDD: RDD
 
     # Lookup Table
-    incomeDistrictRDD: RDD
     incomeNeighborRDD: RDD
-    rentDistrictRDD : RDD
     rentNeighbordRDD : RDD
+    # incomeDistrictRDD: RDD
+    # rentDistrictRDD : RDD
 
     # Load RDDs once.
     __isLoaded: bool = False
@@ -129,14 +129,21 @@ def kpi1(client: SparkClient) -> None:
     # Do not coalesce + write in a real cluster
     # since it will send all your data to the driver
     # and store it in its local filesystem.
-    client.idealistaRDD \
+    rdd = client.idealistaRDD \
       .map(lambda x: (x.date, 1)) \
       .reduceByKey(add) \
+      .cache()
+
+    rdd \
       .coalesce(1) \
       .sortByKey(ascending=True) \
       .toDF(['date', 'listings_count'])\
       .write \
       .csv('out/kp1.csv', header=True, mode='overwrite')
+
+    # Average #listings per day
+    (sum, n) = rdd.map(lambda kv: (kv[1], 1)).reduce(lambda a,b: (a[0] + b[0], a[1] + b[1]))
+    print(f'Average number of listings per day: {sum/n}')
 
 # Correlation of rent price and family income per neighborhood
 # Output: district,neighbor,family,mean(price),mean(rfd)
@@ -148,6 +155,10 @@ def kpi2(client: SparkClient) -> None:
     def latestRFD(x):
         x.sort(reverse=True, key=lambda x: x['year'])
         return x[0]['RFD']
+
+    # BOGUS: without this collect, the last stage on rdd1 loops forever.
+    #        we have been investigating this problem with no clue.
+    client.rentNeighbordRDD.collect()
 
     # RDD[(neigh: str, mean_price: float)]
     rdd1 = client.idealistaRDD \
@@ -164,8 +175,10 @@ def kpi2(client: SparkClient) -> None:
                  .map(f)
 
     # Merge data and save to local disk (do not do this in production).
+    # Note: some strings are quoted (probably .csv does this)
     rdd1.join(rdd2) \
         .coalesce(1) \
+        .map(lambda kv: (kv[0], kv[1][0], kv[1][1])) \
         .toDF(['neighborhood', 'mean_price', 'rfd'])\
         .write \
         .csv('out/kp2.csv', header=True, mode='overwrite')
@@ -179,6 +192,6 @@ def kpi3(client: SparkClient) -> None:
 if __name__ == "__main__":
     client  = SparkClient(num_processors=8)
     client.load()
-    # kpi1(client)
-    kpi2(client)
+    kpi1(client)
+    # kpi2(client)
     # kpi3(client)
