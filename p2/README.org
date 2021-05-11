@@ -7,10 +7,6 @@ Data:
 - Correlation of rent/family income per neighborhood?
 
 
-Visualization: 
-- Can we utilize jupyter notebook for the visualization?
-- Should we only visualize based on the queeries and KPIs?
-
 
 * Spark Application
 
