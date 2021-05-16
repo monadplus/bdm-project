@@ -1,93 +1,31 @@
 * Spark Application
 
-The mongo-spark-connector is from [[https://mvnrepository.com/artifact/org.mongodb.spark/mongo-spark-connector][Maven]].
-
 ** Execute the code
 
-You need a mongoDB server running, if you don't have one installed, use the one provided:
+You need a mongoDB server running, if you don't have one installed, use the one provided by our project (you will need docker and docker-compose installed):
 
 #+BEGIN_SRC sh
-# First install docker and docker-compose
 $ cd mongodb/
 $ docker-compose up --detach
 #+END_SRC
 
-*** Import
+Before running spark, you need to load the datasets into mongoDB. We provided a python script to do the loading for you (see =import.py=).
 
-Before running spark, you need to load the datasets in mongoDB (parquet files are read from disk).
+#+begin_quote
 If you are running your own mongoDB server, you will probably need to edit =mongoclient.py= credentials and url.
+#+end_quote
 
 #+BEGIN_SRC sh
-cd p2/src/
-# pip install pymongo
+cd src/
+pip install pymongo
 python3 import.py
 #+END_SRC
 
-*** Spark
+Once the datasets are loaded into MongoDB, you can just run the spark script =main.py= which will load a standalone Spark cluster in your localhost and
+execute the different KPIs. The result of the different KPIs will be stored in =out/=.
 
 #+BEGIN_SRC sh
-cd p2/src/
-# pip install pyspark
+cd src/
+pip install pyspark
 python3 main.py
-#+END_SRC
-
-** Information about the datasets:
-
-- Idealista is in Parquet format, you can read the parquet files directly from Spark.
-- Income is stored in MongoDB's collection 'income'.
-- Inhabitants is stored in MongoDB's collection 'inhabitats'.
-- The lookup tables are divided in four collections:
-  - rent_lookup_district
-  - income_lookup_district
-  - rent_lookup_neighborhood
-  - income_lookup_neighborhood
-
-** Idealista schema
-
-Not all instances have the same attributes but most follow this schema.
-
-#+BEGIN_SRC
- |-- address: string (nullable = true)
- |-- bathrooms: long (nullable = true)
- |-- country: string (nullable = true)
- |-- detailedType: struct (nullable = true)
- |    |-- subTypology: string (nullable = true)
- |    |-- typology: string (nullable = true)
- |-- distance: string (nullable = true)
- |-- district: string (nullable = true)
- |-- exterior: boolean (nullable = true)
- |-- externalReference: string (nullable = true)
- |-- floor: string (nullable = true)
- |-- has360: boolean (nullable = true)
- |-- has3DTour: boolean (nullable = true)
- |-- hasLift: boolean (nullable = true)
- |-- hasPlan: boolean (nullable = true)
- |-- hasStaging: boolean (nullable = true)
- |-- hasVideo: boolean (nullable = true)
- |-- latitude: double (nullable = true)
- |-- longitude: double (nullable = true)
- |-- municipality: string (nullable = true)
- |-- neighborhood: string (nullable = true)
- |-- newDevelopment: boolean (nullable = true)
- |-- numPhotos: long (nullable = true)
- |-- operation: string (nullable = true)
- |-- parkingSpace: struct (nullable = true)
- |    |-- hasParkingSpace: boolean (nullable = true)
- |    |-- isParkingSpaceIncludedInPrice: boolean (nullable = true)
- |    |-- parkingSpacePrice: double (nullable = true)
- |-- price: double (nullable = true)
- |-- priceByArea: double (nullable = true)
- |-- propertyCode: string (nullable = true)
- |-- propertyType: string (nullable = true)
- |-- province: string (nullable = true)
- |-- rooms: long (nullable = true)
- |-- showAddress: boolean (nullable = true)
- |-- size: double (nullable = true)
- |-- status: string (nullable = true)
- |-- suggestedTexts: struct (nullable = true)
- |    |-- subtitle: string (nullable = true)
- |    |-- title: string (nullable = true)
- |-- thumbnail: string (nullable = true)
- |-- topNewDevelopment: boolean (nullable = true)
- |-- url: string (nullable = true)
 #+END_SRC
