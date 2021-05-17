@@ -1,5 +1,5 @@
 neighborhood,inhabitants_family,rfd
-"\"La Barceloneta, Barcelona\"",2.16,79.6
+La Barceloneta Barcelona,2.16,79.6
 Fort Pienc,2.60,106.5
 Sagrada Família,2.38,101.8
 L'Antiga Esquerra de l'Eixample,2.38,137.2
@@ -44,7 +44,7 @@ Les Corts,2.44,120.0
 Les Tres Torres,2.97,215.8
 Vallcarca i els Penitents,2.45,112.5
 Sant Genís dels Agudells,2.52,84.1
-"\"Horta, Barcelona\"",2.65,79.8
+Horta Barcelona,2.65,79.8
 Vilapicina i la Torre Llobeta,2.47,63.8
 Can Peguera,2.40,51.5
 La Guineueta,2.47,53.8
@@ -57,7 +57,7 @@ La Teixonera,2.44,73.7
 La Verneda i la Pau,2.51,57.0
 El Raval,2.78,71.2
 Gothic Quarter,3.28,106.1
-"\"El Poble-sec, Barcelona\"",2.52,82.2
+El Poble-sec Barcelona,2.52,82.2
 Pedralbes,2.84,248.8
 el Coll,2.41,87.0
 La Salut,2.46,109.9
