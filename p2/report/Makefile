@@ -7,7 +7,6 @@ all: report.pdf
 report.pdf: $(wildcard *.tex) $(wildcard *.bib)
 	- pdflatex -halt-on-error -shell-escape $(TARGET)
 	- bibtex  $(TARGET)
-	- pdflatex -halt-on-error -shell-escape $(TARGET)
 	pdflatex -halt-on-error -shell-escape $(TARGET)
 
 clean:

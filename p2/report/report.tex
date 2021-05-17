@@ -6,26 +6,130 @@
 \usepackage{fancyhdr}
 \pagestyle{fancy}
 \fancyhf{}
-\rhead{TODO}
-\lhead{TODO}
+\rhead{}
+\lhead{Universitat Politècnica de Catalunya}
 \rfoot{Page \thepage}
 
 \title{%
   \vspace{-10ex}
-  TODO
+  BDM: Lab Assignment 2
 }
 \author{%
   Arnau Abella \\
+  Kaia Urdahl \\
   \large{Universitat Polit\`ecnica de Catalunya}
 }
 \date{\today}
 
 \begin{document}
 \maketitle
-% \tableofcontents
 
 \vspace{5ex}
 
-% \bibliographystyle{unsrt}
-% \bibliography{refs}
+\section{Introduction}\label{section:intro}
+
+The aim of this report is to implement, perform and visualize descriptive analysis on three given datasets.
+The following descriptive KPIs were performed: \emph{"Average number of new listings per day"}, \emph{"Correlation between rent price and family income per neighbourhood"},
+and \emph{"Correlation between number of family members and income per neighbourhood"}.
+The correlation between the rent price and family income per neighbourhood was found to be $91\%$.
+Despite our initial hypothesis for KPI3 that there would exist more familiy members per listing in families with lower income, the correlation between these variables was found to be 5\%, and the hypothesis can therefore be categorized as falsified.
+
+\section{Data integration and processing}
+
+\subsection{Data preprocessing}
+
+Figure \ref{fig:pp1}  displays a high level visualization of the preprocessing of the data.
+Where the red parts of the figure shows the initial preprocessing, and the green shows the construction of the different RDDs.
+
+\begin{figure}[H]
+\centering
+\numberwithin{figure}{subsection}
+\includegraphics[width=1\textwidth]{pp2}
+\vspace{1cm}
+\includegraphics[width=1\textwidth]{pp1}
+\caption{Data preprocessing}
+\label{fig:pp1}
+\end{figure}
+
+\subsection{Data integration and processing}
+
+Figure \ref{fig:KPI1}, \ref{fig:KPI2} and \ref{fig:KPI3} displays the pipelines to calculate the three different KPIs.
+
+\begin{figure}[H]
+\centering
+\numberwithin{figure}{subsection}
+\includegraphics[width=1\textwidth]{kpi1-pipeline}
+\caption{Pipeline visualization of KPI1: \emph{"Average number of new listings per day"}}
+\label{fig:KPI1}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\numberwithin{figure}{subsection}
+\includegraphics[width=1\textwidth]{kpi2-pipeline}
+\caption{Pipeline visualization of KPI2: \emph{"Correlation between rent price and family income per neighbourhood"}}
+\label{fig:KPI2}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\numberwithin{figure}{subsection}
+\includegraphics[width=1\textwidth]{kpi3-pipeline}
+\caption{Pipeline visualization of KPI3: \emph{"Correlation between family members per listing and neighbourhood"}}
+\label{fig:KPI3}
+\end{figure}
+
+\subsection{Assumptions}
+
+We made few assumptions:
+
+\begin{itemize}
+    \item The data is read directly from disk instead of HDFS. This assumption was made to simplify the setup processing and can be done without loss of generality since HDFS is just a mature distributed file system.
+    \item There are two unexpected collects in the middle of the code that have nothing to do with the processing but prevent a fatal bug where the program loops forever. For more detail, read subsection \ref{subsubsection:mongodb}.
+    \item The data is collected and stored in the driver file system which should be avoided since, in a real processing job, the data will not fit into mememory.
+\end{itemize}
+
+\subsubsection{Spark MongoDB Connector Bug}\label{subsubsection:mongodb}
+
+The reader will notice a collect call in the middle of the second kpi which is not part of the pipeline per se.
+This is a\textbf{workaround} (which still to this day I am not sure why is it working) to a fatal bug in python's spark mongoDB connector.
+The bug makes spark get stuck in the last stage of a join if one of the RDDs is loaded from mongoDB. If you stop the process:
+
+\begin{lstlisting}[breaklines=true]
+  struct = self.\_inferSchema(rdd, samplingRatio, names=schema)
+  res = self.context.runJob(self, takeUpToNumLeft, p)
+  sock\_info = self.\_jvm.PythonRDD.runJob(self.\_jsc.sc(), mappedRDD.\_jrdd, partitions)
+  answer = self.gateway\_client.send\_command(command)
+  response = connection.send\_command(command)
+  answer = smart\_decode(self.stream.readline()[:-1])
+  return self.\_sock.recv\_into(b)
+  raise KeyboardInterrupt()
+\end{lstlisting}
+
+Infering the schema for a join of dataset seems to be failing.
+
+\section{Extra dataset: Inhabitants per listing}
+
+\begin{table}[h!]
+\begin{tabular}{l|l|l}
+Attribute & Description \\ \hline
+Year & Numerical \\
+District code & Numerical \\
+District name & Categorical \\
+Neighbourhood code & Numerical \\
+Neighbourhood name & Categorical \\
+Population & Numerical \\
+Residences & Numerical \\
+Inhabitants per home & Numerical
+\end{tabular}
+\end{table}
+
+The purpose of choosing this dataset was to investigate if there exists a correlation between the number of family members per residence and family income aggreggated by neighbourhood. Based on the hypothesis that areas with higher income would probably have a lower number of family members per listing, compared to neighbourhood with lower income.
+
+This hypothesis is tested in KPI3 (see \ref{fig:KPI3}).
+
+\section{Visualization}
+
+The visualization of the datasets are displayed in...
+
 \end{document}
